@@ -74,27 +74,27 @@ pub mod http {
         pub fn listen<F>(&self, cb: F)
             where F: Fn(HttpConnection) -> (),
                   F: 'static + Send + Sync {
-                      let mut handles = vec![];
-                      let cb = Arc::new(cb);
+            let mut handles = vec![];
+            let cb = Arc::new(cb);
 
-                      // TODO: there should be a clean way to break out of this loop
-                      for stream in self.tcp_listener.incoming() {
-                          match stream {
-                              Err(err) => error!("Error: {}", err),
-                              Ok(stream) => {
-                                  let con = HttpConnection::new(stream);
-                                  let cb = cb.clone();
-                                  handles.push(thread::spawn(move || (cb)(con)));
-                              },
-                          }
-                      }
+            // TODO: there should be a clean way to break out of this loop
+            for stream in self.tcp_listener.incoming() {
+                match stream {
+                    Err(err) => error!("Error: {}", err),
+                    Ok(stream) => {
+                        let con = HttpConnection::new(stream);
+                        let cb = cb.clone();
+                        handles.push(thread::spawn(move || cb(con)));
+                    },
+                }
+            }
 
-                      // Join all spawned threads
-                      for handle in handles {
-                          // TODO: proper error handling
-                          handle.join().unwrap();
-                      }
-                  }
+            // Join all spawned threads
+            for handle in handles {
+                // TODO: proper error handling
+                handle.join().unwrap();
+            }
+        }
     }
 
 
