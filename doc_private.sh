@@ -1,2 +1,2 @@
 #!/bin/sh
-RUST_DOC=./wrap_rustdoc.sh cargo doc --no-deps "$@"
+RUSTDOC=./wrap_rustdoc.sh cargo doc --no-deps "$@"
