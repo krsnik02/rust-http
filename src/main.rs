@@ -6,7 +6,7 @@ pub mod http {
     use std::sync::Arc;
     use std::thread;
 
-    pub use std::net::SocketAddr;
+    pub use std::net::{ToSocketAddrs, SocketAddr};
 
     /// A HTTP server.
     ///
@@ -47,7 +47,7 @@ pub mod http {
         ///    - the port already being in use, and
         ///    - the port requiring elevated permissions.
         ///
-        pub fn bind(addr: &str) -> Result<HttpServer> {
+        pub fn bind<A: ToSocketAddrs>(addr: A) -> Result<HttpServer> {
             let listener = try!(TcpListener::bind(addr));
 
             // Log address we are listening to
@@ -149,3 +149,4 @@ fn main() {
         Ok(server) => server.listen(handle_connection)
     }
 }
+
