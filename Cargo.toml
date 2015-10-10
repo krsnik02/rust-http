@@ -1,5 +1,5 @@
 [package]
-name = "rust-http2"
+name = "http2"
 version = "0.0.1"
 authors = ["Garrett Hartshaw <ghartshaw@gmail.com>"]
 
