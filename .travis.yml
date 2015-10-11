@@ -3,7 +3,7 @@ rust:
   - stable
   - beta
   - nightly
-script_test: sh -c 'cargo test --package http && cargo test'
+script: sh -c 'cargo build --verbose && cargo test --package http --verbose && cargo test --verbose'
 matrix:
   allow_failures:
     - rust: nightly
