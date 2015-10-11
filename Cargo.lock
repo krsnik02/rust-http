@@ -1,10 +1,10 @@
 [root]
-name = "http-server"
+name = "net"
 version = "0.0.2"
 dependencies = [
  "env_logger 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "net 0.0.2",
+ "mio 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -75,14 +75,6 @@ dependencies = [
  "nix 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "slab 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "net"
-version = "0.0.2"
-dependencies = [
- "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mio 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

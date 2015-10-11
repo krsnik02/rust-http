@@ -1,7 +1,7 @@
 use std::io::{Result, BufReader, BufWriter, Stdin, Stdout};
 use std::net::ToSocketAddrs;
 
-use super::{Event, Request, Response};
+use super::{Request, Response};
 
 pub type CbRequest = Fn(Request, &mut Server) -> Response;
 pub type CbStdin   = Fn(&mut BufReader<Stdin>, &mut Server) -> ();
