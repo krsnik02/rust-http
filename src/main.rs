@@ -11,16 +11,16 @@ use std::thread;
 /// # Arguments
 ///  - `con` - The incoming connection.
 ///
-fn handle_connection(con: http2::HttpConnection) {
+fn handle_connection(con: &mut http2::HttpConnection) {
     info!("Connection established: {:?}", con);
-    thread::sleep_ms(1000);
+    while let Ok(_) = con.next_request() {}
 }
 
 /// Create a new server and begin listening.
 fn main() {
     env_logger::init().unwrap();
     match http2::HttpServer::bind("localhost:80") {
-        Err(err) => error!("Error: {}", err),
+        Err(err) => error!("Error: {:?}", err),
         Ok(server) => server.listen(handle_connection)
     }
 }

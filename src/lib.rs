@@ -1,11 +1,31 @@
 #[macro_use] extern crate log;
 
 use std::net::{TcpListener, TcpStream};
-use std::io::Result;
+use std::io::{Read};
 use std::sync::Arc;
 use std::thread;
 
 pub use std::net::{ToSocketAddrs, SocketAddr};
+
+pub type Result<T> = std::result::Result<T, HttpError>;
+
+#[derive(Debug)]
+pub enum HttpError {
+    IoError(std::io::Error),
+    Utf8Error(std::str::Utf8Error),
+}
+
+impl From<std::io::Error> for HttpError {
+    fn from(err : std::io::Error) -> HttpError {
+        HttpError::IoError(err)
+    }
+}
+
+impl From<std::str::Utf8Error> for HttpError {
+    fn from(err : std::str::Utf8Error) -> HttpError {
+        HttpError::Utf8Error(err)
+    }
+}
 
 /// A HTTP server.
 ///
@@ -72,7 +92,7 @@ impl HttpServer {
     ///  - A spawned thread could not be joined. (TODO: fix this)
     ///
     pub fn listen<F>(&self, cb: F)
-        where F: Fn(HttpConnection) -> (),
+        where F: Fn(&mut HttpConnection) -> (),
               F: 'static + Send + Sync {
         let mut handles = vec![];
         let cb = Arc::new(cb);
@@ -82,9 +102,9 @@ impl HttpServer {
             match stream {
                 Err(err) => error!("Error: {}", err),
                 Ok(stream) => {
-                    let con = HttpConnection::new(stream);
+                    let mut con = HttpConnection::new(stream);
                     let cb = cb.clone();
-                    handles.push(thread::spawn(move || cb(con)));
+                    handles.push(thread::spawn(move || cb(&mut con)));
                 },
             }
         }
@@ -97,6 +117,17 @@ impl HttpServer {
     }
 }
 
+/// A HTTP request
+///
+/// TODO: implement this fully
+#[derive(Debug)]
+pub struct HttpRequest;
+
+/// A HTTP response
+///
+/// TODO: implement this fully
+#[derive(Debug)]
+pub struct HttpResponse;
 
 /// A HTTP connection
 #[derive(Debug)]
@@ -116,11 +147,44 @@ impl HttpConnection {
 
     /// The address of the local end of the connection.
     pub fn local_addr(&self) -> Result<SocketAddr> {
-        self.tcp_stream.local_addr()
+        match self.tcp_stream.local_addr() {
+            Ok(addr) => Ok(addr),
+            Err(err) => Err(HttpError::IoError(err)),
+        }
     }
 
     /// The address of the remote end of the connection.
     pub fn remote_addr(&self) -> Result<SocketAddr> {
-        self.tcp_stream.peer_addr()
+        match self.tcp_stream.peer_addr() {
+            Ok(addr) => Ok(addr),
+            Err(err) => Err(HttpError::IoError(err)),
+        }
+    }
+
+    /// Block until the next request arrives.
+    ///
+    /// TODO: parse the request
+    pub fn next_request(&mut self) -> Result<HttpRequest> {
+
+        // Block until there is an incoming message and then read it in
+        // chunks of BUFSIZE bytes.
+        const BUFSIZE : usize = 1024;
+        let mut read_buf = [0u8; BUFSIZE];
+        let mut accum_buf : Vec<u8> = Vec::with_capacity(BUFSIZE);
+        while let Ok(count) = self.tcp_stream.read(&mut read_buf) {
+            accum_buf.extend(&read_buf[..count]);
+            if count < BUFSIZE { break; }
+        }
+
+        let text = try!(std::str::from_utf8(&accum_buf));
+        info!("Read message: {:?}", text);
+
+        // TODO: actually parse the request
+        Ok(HttpRequest)
+    }
+
+    /// Send a response
+    pub fn send_response(&self, response: HttpResponse) {
+        unimplemented!();
     }
 }
