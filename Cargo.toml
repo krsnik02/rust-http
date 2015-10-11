@@ -1,8 +1,9 @@
 [package]
-name = "http2"
+name = "http"
 version = "0.0.1"
 authors = ["Garrett Hartshaw <ghartshaw@gmail.com>"]
 
 [dependencies]
+mio = "0.4.1"
 log = "0.3.2"
 env_logger = "0.3.1"

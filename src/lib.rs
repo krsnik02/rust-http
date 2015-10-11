@@ -1,58 +1,38 @@
 #[macro_use] extern crate log;
+extern crate mio;
 
-use std::net::{TcpListener, TcpStream};
-use std::io::{Read};
-use std::sync::Arc;
-use std::thread;
+pub use std::net::ToSocketAddrs;
 
-pub use std::net::{ToSocketAddrs, SocketAddr};
-
-pub type Result<T> = std::result::Result<T, HttpError>;
-
-#[derive(Debug)]
-pub enum HttpError {
-    IoError(std::io::Error),
-    Utf8Error(std::str::Utf8Error),
-}
-
-impl From<std::io::Error> for HttpError {
-    fn from(err : std::io::Error) -> HttpError {
-        HttpError::IoError(err)
-    }
-}
-
-impl From<std::str::Utf8Error> for HttpError {
-    fn from(err : std::str::Utf8Error) -> HttpError {
-        HttpError::Utf8Error(err)
-    }
-}
+/// Type of callback which handles requests.
+pub type RequestHandler = Box<Fn(HttpRequest) -> HttpResponse>;
 
 /// A HTTP server.
 ///
 /// # Examples
 ///
 /// ```no_run
-/// # use self::http2;
-/// use http2::{HttpServer, HttpConnection};
+/// # use self::http;
+/// use http::*;
 ///
-/// fn handle_connection(con: &mut HttpConnection) {
+/// // Callback that handles requests
+/// fn on_request(request: HttpRequest) -> HttpResponse {
 ///   // ...
+///   # HttpResponse
 /// }
 ///
-/// let server = HttpServer::bind("127.0.0.1:80").unwrap();
+/// // Create and bind server
+/// let mut server = HttpServer::bind("127.0.0.1:80").unwrap();
 ///
-/// // accept connections and process them
-/// server.listen(handle_connection);
-///
-/// // close the http server
-/// drop(server);
+/// // Accept connections and process them
+/// server.listen(Some(Box::new(on_request)));
 /// ```
 ///
-#[derive(Debug)]
 pub struct HttpServer {
-    /// The underlying TCP socket listener
-    tcp_listener: TcpListener,
+    tcp_server: mio::tcp::TcpListener,
+    on_request: Option<RequestHandler>,
 }
+
+const TOK_SERVER: mio::Token = mio::Token(0);
 
 impl HttpServer {
     /// Create a new `HttpServer` and bind it to a network address.
@@ -61,60 +41,75 @@ impl HttpServer {
     ///  - `addr` - The address to bind.
     ///
     /// # Failures
+    ///  - The given address is not a valid socket address.
+    ///
     ///  - The given address could not be bound.
     ///
     ///    Reasons for this error include
     ///    - the port already being in use, and
     ///    - the port requiring elevated permissions.
     ///
-    pub fn bind<A: ToSocketAddrs>(addr: A) -> Result<HttpServer> {
-        let listener = try!(TcpListener::bind(addr));
-
-        // Log address we are listening to
-        if let Ok(addr) = listener.local_addr() {
-            info!("Listening on address {}", addr);
+    pub fn bind<T: ToSocketAddrs>(addr: T) -> Option<HttpServer> {
+        match addr.to_socket_addrs() {
+            Ok(mut addrs) => {
+                match addrs.next() {
+                    Some(addr) => {
+                        match mio::tcp::TcpListener::bind(&addr) {
+                            Ok(server) => {
+                                Some(HttpServer {
+                                    tcp_server: server,
+                                    on_request: None,
+                                })
+                            },
+                            Err(_) => None,
+                        }
+                    },
+                    None => None,
+                }
+            },
+            Err(_) => None,
         }
-        else {
-            info!("Listening on unknown address");
-        }
-
-        Ok(HttpServer { tcp_listener: listener })
     }
 
     /// Listen for incoming connections.
     ///
-    /// A new thread is spawned whenever a connection is established.
-    ///
     /// # Arguments
-    ///  - `cb` - A callback which is run in a new thread for each connection.
-    ///
-    /// # Panics
-    ///  - A spawned thread could not be joined. (TODO: fix this)
-    ///
-    pub fn listen<F>(&self, cb: F)
-        where F: Fn(&mut HttpConnection) -> (),
-              F: 'static + Send + Sync {
-        let mut handles = vec![];
-        let cb = Arc::new(cb);
+    ///  - `on_request` - A optional callback which is called for every
+    ///                   incoming request.
+    pub fn listen(&mut self, on_request: Option<RequestHandler>) {
+        self.on_request = on_request;
+        let mut event_loop = mio::EventLoop::new().unwrap();
+        event_loop.register(&self.tcp_server, TOK_SERVER);
+        event_loop.run(self);
+    }
+}
 
-        // TODO: there should be a clean way to break out of this loop
-        for stream in self.tcp_listener.incoming() {
-            match stream {
-                Err(err) => error!("Error: {}", err),
-                Ok(stream) => {
-                    let mut con = HttpConnection::new(stream);
-                    let cb = cb.clone();
-                    handles.push(thread::spawn(move || cb(&mut con)));
+impl mio::Handler for HttpServer {
+    type Timeout = ();
+    type Message = ();
+
+    fn ready(&mut self, event_loop: &mut mio::EventLoop<HttpServer>,
+             token: mio::Token, events: mio::EventSet) {
+        if token == TOK_SERVER {
+            assert!(events.is_readable());
+
+            match self.tcp_server.accept() {
+                Ok(Some(_)) => {
+                    info!("Accepted a connection");
+                    event_loop.shutdown();
                 },
+                Ok(None) => {},
+                Err(e) => {
+                    error!("Error accepting an incoming connection: {}", e);
+                    event_loop.shutdown();
+                }
             }
         }
-
-        // Join all spawned threads
-        for handle in handles {
-            // TODO: proper error handling
-            handle.join().unwrap();
+        else {
+            unreachable!();
         }
     }
+
 }
 
 /// A HTTP request
@@ -129,6 +124,7 @@ pub struct HttpRequest;
 #[derive(Debug)]
 pub struct HttpResponse;
 
+/*
 /// A HTTP connection
 #[derive(Debug)]
 pub struct HttpConnection {
@@ -188,3 +184,4 @@ impl HttpConnection {
         unimplemented!();
     }
 }
+*/

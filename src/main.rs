@@ -1,6 +1,6 @@
 #[macro_use] extern crate log;
 extern crate env_logger;
-extern crate http2;
+extern crate http;
 
 use std::thread;
 
@@ -11,17 +11,15 @@ use std::thread;
 /// # Arguments
 ///  - `con` - The incoming connection.
 ///
-fn handle_connection(con: &mut http2::HttpConnection) {
-    info!("Connection established: {:?}", con);
-    while let Ok(_) = con.next_request() {}
+fn on_request(request: http::HttpRequest) -> http::HttpResponse {
+  http::HttpResponse
 }
 
 /// Create a new server and begin listening.
 fn main() {
     env_logger::init().unwrap();
-    match http2::HttpServer::bind("localhost:80") {
-        Err(err) => error!("Error: {:?}", err),
-        Ok(server) => server.listen(handle_connection)
+    match http::HttpServer::bind("localhost:80") {
+        Some(mut server) => server.listen(Some(Box::new(on_request))),
+        None             => error!("Error!"),
     }
 }
-
