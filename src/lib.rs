@@ -35,7 +35,7 @@ impl From<std::str::Utf8Error> for HttpError {
 /// # use self::http2;
 /// use http2::{HttpServer, HttpConnection};
 ///
-/// fn handle_connection(con: HttpConnection) {
+/// fn handle_connection(con: &mut HttpConnection) {
 ///   // ...
 /// }
 ///
