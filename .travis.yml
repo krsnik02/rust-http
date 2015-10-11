@@ -7,6 +7,3 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
-
-before_script: cd http
-before_install: cd http
