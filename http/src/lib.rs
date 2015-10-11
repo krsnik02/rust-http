@@ -1,9 +1,10 @@
 #[macro_use] extern crate log;
 extern crate mio;
 
+use std::io::{self, Result};
 use std::net::ToSocketAddrs;
+use mio::tcp::TcpListener;
 
-/// Type of callback which handles requests.
 pub type RequestHandler = Box<Fn(HttpRequest) -> HttpResponse>;
 
 /// A HTTP server.
@@ -28,7 +29,7 @@ pub type RequestHandler = Box<Fn(HttpRequest) -> HttpResponse>;
 /// ```
 ///
 pub struct HttpServer {
-    tcp_server: mio::tcp::TcpListener,
+    tcp_server: TcpListener,
     on_request: Option<RequestHandler>,
 }
 
@@ -41,34 +42,36 @@ impl HttpServer {
     ///  - `addr` - The address to bind.
     ///
     /// # Failures
-    ///  - The given address is not a valid socket address.
+    ///  - `addr` is not a valid socket address.
+    ///  - A socket could not be bound to `addr`.
     ///
-    ///  - The given address could not be bound.
+    ///    The most common causes of this error are:
+    ///    - the port is already in use, and
+    ///    - the port requires elevated permissions to bind.
     ///
-    ///    Reasons for this error include
-    ///    - the port already being in use, and
-    ///    - the port requiring elevated permissions.
-    ///
-    pub fn bind<T: ToSocketAddrs>(addr: T) -> Option<HttpServer> {
-        match addr.to_socket_addrs() {
+    pub fn bind<T: ToSocketAddrs>(addr: T) -> Result<HttpServer> {
+        let invalid_address = io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Invalid socket address");
+
+        // Get `SocketAddr` from argument `addr`
+        let addr = try!(match addr.to_socket_addrs() {
             Ok(mut addrs) => {
                 match addrs.next() {
-                    Some(addr) => {
-                        match mio::tcp::TcpListener::bind(&addr) {
-                            Ok(server) => {
-                                Some(HttpServer {
-                                    tcp_server: server,
-                                    on_request: None,
-                                })
-                            },
-                            Err(_) => None,
-                        }
-                    },
-                    None => None,
+                    Some(addr) => Ok(addr),
+                    None => Err(invalid_address),
                 }
             },
-            Err(_) => None,
-        }
+            Err(_) => Err(invalid_address),
+        });
+
+        // Bind the server
+        let server = try!(TcpListener::bind(&addr));
+        info!("Server listening on {}", addr);
+        Ok(HttpServer {
+            tcp_server: server,
+            on_request: None,
+        })
     }
 
     /// Listen for incoming connections.
@@ -92,7 +95,6 @@ impl mio::Handler for HttpServer {
              token: mio::Token, events: mio::EventSet) {
         if token == TOK_SERVER {
             assert!(events.is_readable());
-
             match self.tcp_server.accept() {
                 Ok(Some(_)) => {
                     info!("Accepted a connection");
@@ -111,6 +113,10 @@ impl mio::Handler for HttpServer {
     }
 
 }
+
+
+
+
 
 /// A HTTP request
 ///

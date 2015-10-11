@@ -17,7 +17,7 @@ fn on_request(request: http::HttpRequest) -> http::HttpResponse {
 fn main() {
     env_logger::init().unwrap();
     match http::HttpServer::bind("localhost:80") {
-        Some(mut server) => server.listen(Some(Box::new(on_request))),
-        None             => error!("Error!"),
+        Ok(mut server) => server.listen(Some(Box::new(on_request))),
+        Err(err) => error!("{}", err),
     }
 }
