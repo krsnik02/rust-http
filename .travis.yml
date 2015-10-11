@@ -3,6 +3,10 @@ rust:
   - stable
   - beta
   - nightly
+  - 1.0.0
 matrix:
   allow_failures:
     - rust: nightly
+
+before_script: cd http
+before_install: cd http

@@ -1,7 +1,7 @@
 #[macro_use] extern crate log;
 extern crate mio;
 
-pub use std::net::ToSocketAddrs;
+use std::net::ToSocketAddrs;
 
 /// Type of callback which handles requests.
 pub type RequestHandler = Box<Fn(HttpRequest) -> HttpResponse>;

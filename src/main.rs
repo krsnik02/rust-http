@@ -2,8 +2,6 @@
 extern crate env_logger;
 extern crate http;
 
-use std::thread;
-
 /// Handle a incoming connection.
 ///
 /// This function is run in its own thread each time a connection is created
