@@ -9,7 +9,7 @@ rust:
   - nightly
 script:
   - cargo build --verbose
-  - cargo test --package http --verbose
+  - cargo test --package net --verbose
   - cargo test --verbose
 matrix:
   allow_failures:

@@ -1,8 +1,45 @@
-#[macro_use] extern crate log;
-extern crate mio;
+use std::io::{Result, BufReader, BufWriter, Stdin, Stdout};
+use std::net::ToSocketAddrs;
 
+use super::{Event, Request, Response};
+
+pub type CbRequest = Fn(Request, &mut Server) -> Response;
+pub type CbStdin   = Fn(&mut BufReader<Stdin>, &mut Server) -> ();
+pub type CbStdout  = Fn(&mut BufWriter<Stdout>, &mut Server) -> ();
+
+pub struct Server;
+
+impl Server {
+    pub fn bind<T: ToSocketAddrs>(addr: T) -> Result<Server> {
+        unimplemented!()
+    }
+
+    pub fn on_request(&self, callback: &CbRequest) {
+        unimplemented!()
+    }
+
+    pub fn on_stdin(&self, callback: &CbStdin) {
+        unimplemented!()
+    }
+
+    pub fn on_stdout(&self, callback: &CbStdout) {
+        unimplemented!()
+    }
+
+    pub fn run_event_loop(&self) {
+        unimplemented!()
+    }
+
+    pub fn shutdown(&self) {
+        unimplemented!()
+    }
+}
+
+/*
 use std::io::{self, Result};
 use std::net::ToSocketAddrs;
+
+use mio;
 use mio::tcp::TcpListener;
 
 pub type RequestHandler = Box<Fn(HttpRequest) -> HttpResponse>;
@@ -130,7 +167,6 @@ pub struct HttpRequest;
 #[derive(Debug)]
 pub struct HttpResponse;
 
-/*
 /// A HTTP connection
 #[derive(Debug)]
 pub struct HttpConnection {
