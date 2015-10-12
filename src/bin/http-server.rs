@@ -70,6 +70,15 @@ fn main() {
 
     let mut event_loop = mio::EventLoop::new().unwrap();
     let server = http::HttpServer::bind("localhost:8080").unwrap();
+
+    match server.local_addr() {
+        Ok(addr) => { info!("Listening on {}", addr); },
+        Err(err) => {
+            warn!("{}", err);
+            info!("Listening on unknown address");
+        },
+    }
+
     server.register_self(&mut event_loop, TOK_SERVER).unwrap();
     event_loop.run(&mut MyHandler(server)).unwrap();
 }
