@@ -1,6 +1,6 @@
 [package]
-name = "net"
-version = "0.0.2"
+name = "http"
+version = "0.0.3"
 authors = ["Garrett Hartshaw <ghartshaw@gmail.com>"]
 repository = "https://github.com/krsnik02/rust-http2.git"
 readme = "README.md"
@@ -8,5 +8,4 @@ license = "MIT"
 
 [dependencies]
 log = "0.3.2"
-env_logger = "0.3.1"
 mio = "0.4.1"
