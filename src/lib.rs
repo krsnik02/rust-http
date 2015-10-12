@@ -5,4 +5,3 @@ pub mod http;
 mod backend;
 
 pub type HttpServer = http::Server<backend::TCPBackend>;
-pub type HttpsServer = http::Server<backend::SSLBackend>;

@@ -1,6 +1,7 @@
 use std::io::{Result, BufReader, BufWriter, Stdin, Stdout};
-use std::net::ToSocketAddrs;
+use std::net::{ToSocketAddrs, SocketAddr};
 use super::backend::Backend;
+use mio::{EventLoop, EventSet, Handler, Token};
 
 pub struct Request;
 pub struct Response;
@@ -9,13 +10,45 @@ pub type CbRequest<T> = Fn(Request, &mut Server<T>) -> Response;
 pub type CbStdin<T>   = Fn(&mut BufReader<Stdin>, &mut Server<T>) -> ();
 pub type CbStdout<T>  = Fn(&mut BufWriter<Stdout>, &mut Server<T>) -> ();
 
+fn to_socket_addr<A: ToSocketAddrs>(addr: A) -> Result<SocketAddr> {
+    use std::io::{Error, ErrorKind};
+
+    let err_invalid =
+        Error::new(ErrorKind::InvalidInput, "Invalid socket address");
+
+    match addr.to_socket_addrs() {
+        Ok(mut addrs) => {
+            match addrs.next() {
+                Some(addr) => Ok(addr),
+                None => Err(err_invalid),
+            }
+        },
+        Err(_) => Err(err_invalid),
+    }
+}
+
+
+const TOK_SERVER: Token = Token(0);
+
 pub struct Server<T: Backend> {
-    backend: T,
+    backend: T::Server,
+    event_loop: EventLoop<T::Server>,
 }
 
 impl <T: Backend> Server<T> {
     pub fn bind<A: ToSocketAddrs>(addr: A) -> Result<Self> {
-        unimplemented!()
+        let addr = try!(to_socket_addr(addr));
+        let backend = try!(T::bind(addr));
+        info!("Listening on {}", addr);
+
+        let mut event_loop = try!(EventLoop::new());
+        let token = Token(0);
+        event_loop.register(&backend, TOK_SERVER);
+
+        Ok(Server {
+            backend: backend,
+            event_loop: event_loop,
+        })
     }
 
     pub fn on_request(&self, callback: &CbRequest<T>) {
@@ -30,14 +63,26 @@ impl <T: Backend> Server<T> {
         unimplemented!()
     }
 
-    pub fn run_event_loop(&self) {
-        unimplemented!()
+    pub fn run_event_loop(&mut self) {
+        let mut event_loop = &self.event_loop;
+        event_loop.run(self.backend);
     }
 
     pub fn shutdown(&self) {
         unimplemented!()
     }
 }
+
+impl <T: Backend> Handler for Server<T> {
+    type Timeout = ();
+    type Message = ();
+
+    fn ready(&mut self, _: &mut EventLoop<Server<T>>,
+             _: Token, _: EventSet) {
+        unimplemented!()
+    }
+}
+
 
 /*
 use std::io::{self, Result};

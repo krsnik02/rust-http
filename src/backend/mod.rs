@@ -1,14 +1,13 @@
 use std::net::SocketAddr;
 use std::io::Result;
+use mio::Evented;
 
 mod tcp;
-mod ssl;
 
 pub type TCPBackend = tcp::Backend;
-pub type SSLBackend = ssl::Backend;
 
 pub trait Backend {
-    type Server;
+    type Server : Evented;
     type Stream;
 
     fn bind(addr: SocketAddr) -> Result<Self::Server>;
