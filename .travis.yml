@@ -1,5 +1,4 @@
 language: rust
-cache: cargo
 os:
   - linux
   - osx
@@ -10,3 +9,6 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+cache:
+  directories:
+    - target/debug/deps
