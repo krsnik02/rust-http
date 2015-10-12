@@ -45,7 +45,6 @@ impl HttpServer {
         Ok(HttpServer {
             tcp_listener: listener,
         })
-
     }
 
     /// The address the server is listening on.
