@@ -1,6 +1,6 @@
 extern crate mio;
 
-use std::io::Result;
+use std::io::{Result, Error, ErrorKind};
 use std::net::{SocketAddr, ToSocketAddrs};
 use mio::{EventLoop, Handler, Token};
 use mio::tcp::{TcpListener, TcpStream};
@@ -20,6 +20,17 @@ impl HttpConnection {
 }
 
 
+/// Convert `A: ToSocketAddrs` to `SocketAddr`
+fn to_addr<A: ToSocketAddrs>( addr: A ) -> Result<SocketAddr> {
+    let mut iter = try!(addr.to_socket_addrs());
+    match iter.next() {
+        Some(addr) => Ok(addr),
+        None => {
+            Err(Error::new(ErrorKind::InvalidInput,
+                           "Not a socket address"))
+        },
+    }
+}
 
 
 pub struct HttpServer {
@@ -28,7 +39,15 @@ pub struct HttpServer {
 
 impl HttpServer {
     pub fn bind<A: ToSocketAddrs>( addr: A ) -> Result<HttpServer> {
-        unimplemented!()
+        let addr = try!(to_addr(addr));
+        let listener = try!(TcpListener::bind(&addr));
+        Ok(HttpServer {
+            tcp_listener: listener,
+        })
+    }
+
+    pub fn local_addr(&self) -> Result<SocketAddr> {
+        self.tcp_listener.local_addr()
     }
 
     pub fn accept(&self) -> Result<Option<HttpConnection>> {
